@@ -1,38 +1,34 @@
-#include <AESLib.h> // Include AES library for decryption
+#include <RH_ASK.h>
+#include <SPI.h> // Not actualy used but needed to compile
+#include <LiquidCrystal.h>
+int Contrast=145;
+LiquidCrystal lcd(12, 10, 5, 4, 3, 2);  
 
-// AES Decryption Key (16-byte key)
-#define KEY "1234567890123456"
-AESLib aesLib;
+RH_ASK driver;
 
-// Pins for HC-12
-#define TX_PIN 3 // HC-12 TX
-#define RX_PIN 2 // HC-12 RX
-
-// SoftwareSerial for HC-12 communication
-#include <SoftwareSerial.h>
-SoftwareSerial hc12(RX_PIN, TX_PIN);
-
-char decryptedMessage[64]; // Buffer for decrypted data
-
-void setup() {
-  Serial.begin(9600);  // Debugging
-  hc12.begin(9600);    // HC-12 baud rate
-  Serial.println("Receiver Ready");
+void setup()
+{
+    Serial.begin(9600);  // Debugging only
+    if (!driver.init())
+         Serial.println("init failed");
+        analogWrite(6,Contrast);
+          lcd.begin(20, 4);
 }
 
-void decryptMessage(const char *encryptedText, char *plainText) {
-  aesLib.decrypt64(encryptedText, strlen(encryptedText), plainText, KEY);
-}
-
-void loop() {
-  // Check if data is received
-  if (hc12.available()) {
-    char encryptedMessage[64];
-    hc12.readBytesUntil('\n', encryptedMessage, sizeof(encryptedMessage));
-
-    // Decrypt the received message
-    decryptMessage(encryptedMessage, decryptedMessage);
-    Serial.print("Received: ");
-    Serial.println(decryptedMessage);
-  }
+void loop()
+{
+    uint8_t buf[50];
+    uint8_t buflen = sizeof(buf);
+    if (driver.recv(buf, &buflen)) // Non-blocking
+    {
+      int i;
+      // Message with a good checksum received, dump it.
+      //Serial.print();
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      Serial.print("Message: ");
+      lcd.println((char*)buf);    
+     
+      delay(1000);    
+    }
 }
